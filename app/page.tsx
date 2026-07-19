@@ -1,65 +1,169 @@
-import Image from "next/image";
-
+"use client";
+import { useState, useEffect } from "react";
 export default function Home() {
+  const [task, setTask] = useState("");
+  const [dueDate, setDueDate] = useState("");
+ const [tasks, setTasks] = useState<
+  { text: string; completed: boolean; dueDate: string }[]
+>([]);
+
+const [editingIndex, setEditingIndex] = useState<number | null>(null);
+const [search, setSearch] = useState("");
+const [filter, setFilter] = useState("all");
+
+
+useEffect(() => {
+  const savedTasks = localStorage.getItem("tasks");
+
+  if (savedTasks) {
+    setTasks(JSON.parse(savedTasks));
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}, [tasks]);
+
+
+
+const addTask = () => {
+  if (task.trim() === "") return;
+
+ if (editingIndex !== null) {
+  const updatedTasks = [...tasks];
+  updatedTasks[editingIndex] = {
+    ...updatedTasks[editingIndex],
+    text: task,
+    dueDate,
+  };
+  setTasks(updatedTasks);
+  setEditingIndex(null);
+} else {
+
+  const newTask = {
+  text: task,
+  dueDate: dueDate,
+  completed: false,
+};
+  setTasks([
+    ...tasks,
+    {
+      text: task,
+      completed: false,
+      dueDate,
+    },
+  ]);
+}
+
+setTask("");
+setDueDate("");
+
+
+setDueDate("");
+
+};
+
+
+
+const deleteTask = (index: number) => {
+    setTasks(tasks.filter((_, i) => i !== index));
+  };
+
+const toggleComplete = (index: number) => {
+  const updatedTasks = [...tasks];
+  updatedTasks[index].completed = !updatedTasks[index].completed;
+  setTasks(updatedTasks);
+};
+
+const editTask = (index: number) => {
+  setTask(tasks[index].text);
+  setDueDate(tasks[index].dueDate);
+  setEditingIndex(index);
+};
+
+const filteredTasks = tasks.filter((task) => {
+  if (filter === "active") return !task.completed;
+  if (filter === "completed") return task.completed;
+  return true;
+});
+
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="container">
+     <h1>🌸 My To-Do List 🌸</h1>
+
+
+      <div className="input-area">
+        <input
+          type="text"
+          placeholder="Enter a task"
+          value={task}
+          onChange={(e) => setTask(e.target.value)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        <input
+  type="date"
+  value={dueDate}
+  onChange={(e) => setDueDate(e.target.value)}
+/>
+
+        <button onClick={addTask}>Add Task</button>
+      </div>
+      <input
+  type="text"
+  placeholder="🔍 Search tasks..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+/>
+<div className="filter-buttons">
+  <button onClick={() => setFilter("all")}>All</button>
+  <button onClick={() => setFilter("active")}>Active</button>
+  <button onClick={() => setFilter("completed")}>Completed</button>
+</div>
+
+ <ul>
+ {
+ tasks
+  .filter((item) => {
+    const matchesSearch = item.text
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
+    const matchesFilter =
+      filter === "all"
+        ? true
+        : filter === "active"
+        ? !item.completed
+        : item.completed;
+
+    return matchesSearch && matchesFilter;
+  })
+  .map((item, index) => (
+
+    <li key={index}>
+      <span
+        style={{
+          textDecoration: item.completed ? "line-through" : "none",
+        }}
+      >
+        {item.text}
+        <br />
+        <small>Due: {item.dueDate || "No due date"}</small>
+
+      </span>
+
+      <div>
+
+        <button onClick={() => editTask(index)}>📝</button>
+
+
+        <button onClick={() => toggleComplete(index)}>✔</button>
+
+        <button onClick={() => deleteTask(index)}>🗑</button>
+      </div>
+    </li>
+  ))}
+</ul>
+
     </div>
   );
 }
